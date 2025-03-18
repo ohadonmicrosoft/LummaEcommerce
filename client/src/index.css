@@ -1,0 +1,534 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 25 30% 97%;
+    --foreground: 20 50% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 50% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 50% 20%;
+    --primary: 20 80% 65%;
+    --primary-foreground: 20 10% 98%;
+    --secondary: 25 30% 95%;
+    --secondary-foreground: 20 50% 25%;
+    --muted: 25 20% 95%;
+    --muted-foreground: 20 40% 50%;
+    --accent: 15 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 20% 90%;
+    --input: 20 20% 90%;
+    --ring: 20 80% 65%;
+    --radius: 0.75rem;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(220, 100, 60, 0.03), 0 2px 4px rgba(220, 100, 60, 0.03);
+    --shadow-md: 0 2px 4px rgba(220, 100, 60, 0.04), 0 4px 8px rgba(220, 100, 60, 0.05);
+    --shadow-lg: 0 4px 12px rgba(220, 100, 60, 0.06), 0 8px 20px rgba(220, 100, 60, 0.08);
+    --shadow-xl: 0 8px 24px rgba(220, 100, 60, 0.07), 0 16px 32px rgba(220, 100, 60, 0.1);
+    
+    /* Card and container styles */
+    --card-shadow: var(--shadow-md);
+    --card-shadow-hover: var(--shadow-lg);
+    --card-border-radius: 12px;
+    
+    /* Button styles */
+    --button-shadow: var(--shadow-sm);
+    --button-shadow-hover: var(--shadow-md);
+    --button-border-radius: 8px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  }
+  
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-medium tracking-tight;
+    color: hsl(var(--foreground));
+  }
+  
+  /* RTL support */
+  html {
+    transition: direction 0s;
+    scroll-behavior: smooth;
+  }
+  
+  html[dir="rtl"] {
+    text-align: right;
+  }
+  
+  html[dir="ltr"] {
+    text-align: left;
+  }
+  
+  /* Add smooth transitions for navigation elements */
+  .mega-menu,
+  .dropdown-menu,
+  .mobile-menu-enter,
+  .mobile-menu-exit {
+    transition: all var(--transition-smooth);
+  }
+  
+  /* Enhance buttons with subtle depth and interactivity */
+  button, 
+  .btn,
+  a[role="button"],
+  [type="button"],
+  [type="submit"] {
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-smooth);
+    transform: translateY(0);
+    backface-visibility: hidden;
+    font-weight: 500;
+  }
+  
+  button:not(.unstyled), 
+  .btn:not(.unstyled),
+  a[role="button"]:not(.unstyled),
+  [type="button"]:not(.unstyled),
+  [type="submit"]:not(.unstyled) {
+    box-shadow: var(--button-shadow);
+  }
+  
+  button:hover:not(:disabled):not(.unstyled), 
+  .btn:hover:not(:disabled):not(.unstyled),
+  a[role="button"]:hover:not(:disabled):not(.unstyled),
+  [type="button"]:hover:not(:disabled):not(.unstyled),
+  [type="submit"]:hover:not(:disabled):not(.unstyled) {
+    transform: translateY(-1px);
+    box-shadow: var(--button-shadow-hover);
+  }
+  
+  button:active:not(:disabled):not(.unstyled), 
+  .btn:active:not(:disabled):not(.unstyled),
+  a[role="button"]:active:not(:disabled):not(.unstyled),
+  [type="button"]:active:not(:disabled):not(.unstyled),
+  [type="submit"]:active:not(:disabled):not(.unstyled) {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* Subtle button hover interaction */
+  button::before,
+  .btn::before,
+  a[role="button"]::before,
+  [type="button"]::before,
+  [type="submit"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color var(--transition-fast);
+    pointer-events: none;
+  }
+  
+  button:hover::before,
+  .btn:hover::before,
+  a[role="button"]:hover::before,
+  [type="button"]:hover::before,
+  [type="submit"]:hover::before {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+  
+  /* Focus styles */
+  button:focus-visible,
+  .btn:focus-visible,
+  a[role="button"]:focus-visible,
+  [type="button"]:focus-visible,
+  [type="submit"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+  
+  /* Links styling */
+  a:not([class]) {
+    text-decoration: none;
+    background-image: linear-gradient(hsl(var(--primary)), hsl(var(--primary)));
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0 1px;
+    transition: background-size var(--transition-smooth);
+  }
+  
+  a:not([class]):hover {
+    background-size: 100% 1px;
+  }
+}
+
+@layer components {
+  /* Accessibility Styles */
+  /* High Contrast Mode */
+  html[data-a11y-mode="highContrast"] {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 240 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 90%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 35%;
+    --accent: 240 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 240 100% 50%;
+  }
+  
+  html[data-a11y-mode="highContrast"] body {
+    @apply bg-white text-black;
+  }
+  
+  html[data-a11y-mode="highContrast"] a {
+    @apply text-blue-700 underline;
+    text-decoration-thickness: 2px;
+  }
+  
+  html[data-a11y-mode="highContrast"] button,
+  html[data-a11y-mode="highContrast"] .btn,
+  html[data-a11y-mode="highContrast"] [role="button"] {
+    @apply border-2 border-black;
+    outline: 2px solid transparent;
+  }
+  
+  html[data-a11y-mode="highContrast"] button:focus-visible,
+  html[data-a11y-mode="highContrast"] .btn:focus-visible,
+  html[data-a11y-mode="highContrast"] [role="button"]:focus-visible,
+  html[data-a11y-mode="highContrast"] a:focus-visible,
+  html[data-a11y-mode="highContrast"] input:focus-visible,
+  html[data-a11y-mode="highContrast"] select:focus-visible,
+  html[data-a11y-mode="highContrast"] textarea:focus-visible {
+    @apply outline-4 outline-yellow-400;
+  }
+  
+  html[data-a11y-mode="highContrast"] img {
+    @apply border-2 border-black;
+  }
+  
+  html[data-a11y-mode="highContrast"] .card,
+  html[data-a11y-mode="highContrast"] .product-card {
+    @apply border-2 border-black;
+    box-shadow: 5px 5px 0 rgba(0, 0, 0, 1);
+    transform: none !important;
+  }
+  
+  /* Reduced Motion Mode */
+  html[data-a11y-mode="reducedMotion"] *,
+  html[data-a11y-mode="reducedMotion"] *::before,
+  html[data-a11y-mode="reducedMotion"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  html[data-a11y-mode="reducedMotion"] button:hover:not(:disabled):not(.unstyled), 
+  html[data-a11y-mode="reducedMotion"] .btn:hover:not(:disabled):not(.unstyled),
+  html[data-a11y-mode="reducedMotion"] a[role="button"]:hover:not(:disabled):not(.unstyled),
+  html[data-a11y-mode="reducedMotion"] [type="button"]:hover:not(:disabled):not(.unstyled),
+  html[data-a11y-mode="reducedMotion"] [type="submit"]:hover:not(:disabled):not(.unstyled) {
+    transform: none !important;
+  }
+  
+  html[data-a11y-mode="reducedMotion"] .product-card:hover,
+  html[data-a11y-mode="reducedMotion"] .card:hover,
+  html[data-a11y-mode="reducedMotion"] .category-card:hover {
+    transform: none !important;
+  }
+  
+  html[data-a11y-mode="reducedMotion"] .product-card:hover .product-image {
+    transform: none !important;
+  }
+  
+  /* Screen Reader Optimizations */
+  html[data-a11y-mode="screenReader"] .sr-enhanced {
+    @apply p-1 border border-blue-500 bg-blue-50 text-blue-900;
+  }
+  
+  html[data-a11y-mode="screenReader"] button,
+  html[data-a11y-mode="screenReader"] .btn,
+  html[data-a11y-mode="screenReader"] [role="button"] {
+    @apply border border-blue-500 relative;
+  }
+  
+  html[data-a11y-mode="screenReader"] button::after,
+  html[data-a11y-mode="screenReader"] .btn::after,
+  html[data-a11y-mode="screenReader"] [role="button"]::after {
+    content: "button";
+    position: absolute;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  
+  html[data-a11y-mode="screenReader"] a::after {
+    content: "link";
+    position: absolute;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  
+  /* Helper class for enhanced screen reader labels */
+  .sr-only-enhanced {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  
+  html[data-a11y-mode="screenReader"] .sr-only-enhanced {
+    position: relative;
+    width: auto;
+    height: auto;
+    padding: 0.25rem 0.5rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    @apply text-xs bg-blue-50 text-blue-900 border border-blue-200 rounded-sm;
+  }
+  
+  /* Bidirectional utilities */
+  .rtl\:mr-auto:dir(rtl) {
+    margin-right: auto;
+  }
+  
+  .rtl\:ml-auto:dir(rtl) {
+    margin-left: auto;
+  }
+  
+  .rtl\:rotate-180:dir(rtl) {
+    transform: rotate(180deg);
+  }
+  
+  .rtl\:flex-row-reverse:dir(rtl) {
+    flex-direction: row-reverse;
+  }
+  
+  /* Text alignment */
+  .rtl\:text-right:dir(rtl) {
+    text-align: right;
+  }
+  
+  .rtl\:text-left:dir(rtl) {
+    text-align: left;
+  }
+  
+  /* Bidirectional spacing */
+  html[dir="rtl"] .rtl-space-x-reverse > * + * {
+    margin-right: var(--space-x, 0.5rem);
+    margin-left: 0;
+  }
+  
+  html[dir="ltr"] .rtl-space-x-reverse > * + * {
+    margin-left: var(--space-x, 0.5rem);
+    margin-right: 0;
+  }
+  
+  /* RTL-aware padding and margin */
+  html[dir="rtl"] .rtl-padding {
+    padding-right: var(--padding-start, 1rem);
+    padding-left: var(--padding-end, 1rem);
+  }
+  
+  html[dir="ltr"] .rtl-padding {
+    padding-left: var(--padding-start, 1rem);
+    padding-right: var(--padding-end, 1rem);
+  }
+  
+  /* Hebrew font adjustments */
+  html[lang="he"] {
+    font-family: 'Segoe UI', 'Arial Hebrew', 'Tahoma', sans-serif;
+  }
+  
+  /* Language-switching animation */
+  .lang-fade-enter {
+    opacity: 0;
+  }
+  
+  .lang-fade-enter-active {
+    opacity: 1;
+    transition: opacity 300ms;
+  }
+  
+  .lang-fade-exit {
+    opacity: 1;
+  }
+  
+  .lang-fade-exit-active {
+    opacity: 0;
+    transition: opacity 300ms;
+  }
+  
+  /* Enhanced Card Styles */
+  .card, .product-card {
+    border-radius: var(--card-border-radius);
+    box-shadow: var(--card-shadow);
+    transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+    overflow: hidden;
+    background-color: #ffffff;
+    border: 1px solid rgba(220, 100, 60, 0.05);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .card:hover, .product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -15px rgba(220, 100, 60, 0.15);
+  }
+  
+  /* Category Card Hover Effects */
+  .category-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--card-border-radius);
+    transition: transform var(--transition-smooth);
+  }
+  
+  .category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(220, 100, 60, 0.7) 0%, rgba(220, 100, 60, 0) 70%);
+    opacity: 0.9;
+    transition: opacity var(--transition-smooth);
+    z-index: 1;
+  }
+  
+  .category-card:hover::before {
+    opacity: 1;
+  }
+  
+  .category-card:hover {
+    transform: scale(1.02);
+  }
+  
+  .category-card .category-content {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Product Card Hover Effects */
+  .product-card .product-image {
+    transition: transform var(--transition-smooth);
+  }
+  
+  .product-card:hover .product-image {
+    transform: scale(1.05);
+  }
+  
+  .product-card .product-actions {
+    transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  
+  .product-card:hover .product-actions {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  /* Animated Badge */
+  .badge {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .badge::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: rotate(30deg);
+    animation: shimmer 3s infinite;
+  }
+  
+  /* Input and form controls enhancement */
+  input, textarea, select {
+    border-radius: 8px;
+    transition: all var(--transition-smooth);
+    box-shadow: 0 2px 5px -2px rgba(0, 0, 0, 0.1) inset;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  input:focus, textarea:focus, select:focus {
+    box-shadow: 0 2px 15px -5px hsla(var(--primary), 0.3);
+    border-color: hsla(var(--primary), 0.3);
+    transform: translateY(-1px);
+  }
+  
+  /* Button animations */
+  @keyframes ripple {
+    0% {
+      transform: scale(0, 0);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(100, 100);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      transform: rotate(30deg) translateX(-100%);
+    }
+    100% {
+      transform: rotate(30deg) translateX(100%);
+    }
+  }
+  
+  /* Toast and notification enhancement */
+  .toast {
+    border-radius: 12px;
+    box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.2);
+    transition: all var(--transition-bounce);
+  }
+}
