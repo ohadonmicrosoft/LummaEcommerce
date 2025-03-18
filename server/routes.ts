@@ -265,9 +265,9 @@ export async function registerRoutes(app: Express, storageInstance = defaultStor
   app.get(`${apiPrefix}/products/:id/inventory`, async (req: Request, res: Response) => {
     try {
       const productId = parseInt(req.params.id);
-      const product = await storage.getProducts({ productId });
+      const product = await storage.getProductBySlug(productId.toString());
       
-      if (!product || product.length === 0) {
+      if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
       

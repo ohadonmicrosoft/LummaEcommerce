@@ -934,6 +934,3 @@ export class MemStorage implements IStorage {
 
 // Create and export the default storage instance
 export const storage = new MemStorage();
-
-// Export the MemStorage class for direct instantiation in serverless environments
-export { MemStorage };
