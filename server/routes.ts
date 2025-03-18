@@ -1,11 +1,17 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage as defaultStorage } from "./storage";
 import { insertCartItemSchema, insertInventoryTransactionSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, storageInstance = defaultStorage): Promise<Server> {
+  // Create HTTP server
+  const server = createServer(app);
+  
+  // Use the provided storage instance or fall back to the default
+  const storage = storageInstance;
+  
   // API routes prefix
   const apiPrefix = "/api";
 
@@ -318,7 +324,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  const httpServer = createServer(app);
-  
-  return httpServer;
+  return server;
 }
