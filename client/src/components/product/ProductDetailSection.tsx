@@ -8,7 +8,7 @@ import { useUI } from "@/contexts/UIContext";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 import { Minus, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { t } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ProductDetailSectionProps {
   product: ProductDetail;
@@ -87,8 +87,8 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
   // Calculate if the Add to Cart button should be disabled
   const isAddToCartDisabled = 
     !product.inStock || 
-    (product.variants.some(v => v.type === 'color') && !selectedColor) ||
-    (product.variants.some(v => v.type === 'size') && !selectedSize);
+    (product.colorVariants.length > 0 && !selectedColor) ||
+    (product.sizeVariants.length > 0 && !selectedSize);
 
   const getColorName = (colorValue: string) => {
     const colorVariant = product.colorVariants.find(v => v.value === colorValue);
@@ -289,14 +289,14 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
                   ) : !product.inStock ? (
                     'Out of Stock'
                   ) : (
-                    t('product.addToCart')
+                    'Add to Cart'
                   )}
                 </Button>
               </div>
               {isAddToCartDisabled && product.inStock && (
                 <p className="text-red-500 text-sm">
-                  {!selectedColor && product.variants.some(v => v.type === 'color') ? 'Please select a color.' : ''}
-                  {!selectedSize && product.variants.some(v => v.type === 'size') ? 'Please select a size.' : ''}
+                  {!selectedColor && product.colorVariants.length > 0 ? 'Please select a color.' : ''}
+                  {!selectedSize && product.sizeVariants.length > 0 ? 'Please select a size.' : ''}
                 </p>
               )}
             </div>
