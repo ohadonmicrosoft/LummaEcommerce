@@ -175,6 +175,90 @@
   a:not([class]):hover {
     background-size: 100% 1px;
   }
+
+  /* Cart Badge Animation */
+  @keyframes cart-badge-pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+    }
+    
+    70% {
+      transform: scale(1.3);
+      box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+    }
+    
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+    }
+  }
+
+  .animate-cart-badge-pulse {
+    animation: cart-badge-pulse 1.5s ease-out;
+  }
+
+  /* Ensure cart badge is always visible */
+  .cart-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: hsl(var(--destructive));
+    color: white;
+    border-radius: 50%;
+    min-width: 18px;
+    min-height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    z-index: 20;
+    pointer-events: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    animation: cart-badge-pulse 1.5s ease-out;
+  }
+
+  .cart-badge-highlight {
+    animation: cart-badge-pulse 1.5s ease-out;
+    background-color: hsl(var(--primary));
+  }
+
+  /* Make cart button more accessible */
+  .cart-button {
+    position: relative;
+    cursor: pointer;
+    border-radius: 9999px;
+    background-color: transparent;
+    transition: all 0.3s ease;
+    overflow: visible;
+  }
+
+  .cart-button:hover {
+    background-color: rgba(14, 165, 233, 0.1);
+    transform: scale(1.05);
+  }
+
+  .cart-button:active {
+    transform: scale(0.95);
+  }
+
+  /* Emphasize cart button when cart has items */
+  #main-cart-button::after,
+  #mobile-cart-button::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 9999px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  #main-cart-button:has(+ .cart-badge:not([style*="display: none"]))::after,
+  #mobile-cart-button:has(+ .cart-badge:not([style*="display: none"]))::after {
+    opacity: 1;
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+  }
 }
 
 @layer components {

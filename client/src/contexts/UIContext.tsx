@@ -1,18 +1,23 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
 interface UIContextType {
-  isCartOpen: boolean;
   isSearchOpen: boolean;
-  isMegaMenuOpen: boolean;
-  isMobileMenuOpen: boolean;
-  openCart: () => void;
-  closeCart: () => void;
   openSearch: () => void;
   closeSearch: () => void;
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  isMegaMenuOpen: boolean;
   openMegaMenu: () => void;
   closeMegaMenu: () => void;
+  isMobileMenuOpen: boolean;
+  openMobileMenu: () => void;
+  closeMobileMenu: () => void;
   toggleMobileMenu: () => void;
-  isHeaderScrolled: boolean;
+  miniCartOpen: boolean;
+  setMiniCartOpen: (isOpen: boolean) => void;
+  setMobileMenuOpen: (isOpen: boolean) => void;
+  isHeaderScrolled?: boolean;
 }
 
 // Create context with default values instead of undefined
@@ -21,21 +26,27 @@ export const UIContext = createContext<UIContextType>({
   isSearchOpen: false,
   isMegaMenuOpen: false,
   isMobileMenuOpen: false,
+  miniCartOpen: false,
   openCart: () => {},
   closeCart: () => {},
   openSearch: () => {},
   closeSearch: () => {},
   openMegaMenu: () => {},
   closeMegaMenu: () => {},
+  openMobileMenu: () => {},
+  closeMobileMenu: () => {},
   toggleMobileMenu: () => {},
+  setMobileMenuOpen: () => {},
+  setMiniCartOpen: () => {},
   isHeaderScrolled: false,
 });
 
 export function UIProvider({ children }: { children: React.ReactNode }) {
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [miniCartOpen, setMiniCartOpen] = useState(false);
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
 
   // Handle scroll effect for header
@@ -52,66 +63,56 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Disable body scroll when modals are open
+  // Debug logging for miniCartOpen state
   useEffect(() => {
-    const shouldDisableScroll = isCartOpen || isSearchOpen || isMobileMenuOpen;
-    
-    if (shouldDisableScroll) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isCartOpen, isSearchOpen, isMobileMenuOpen]);
+    console.log("[UIContext] miniCartOpen state changed to:", miniCartOpen);
+  }, [miniCartOpen]);
 
-  // Functions to control UI states
-  function openCart() {
+  // Functions for menu
+  const openMegaMenu = () => setIsMegaMenuOpen(true);
+  const closeMegaMenu = () => setIsMegaMenuOpen(false);
+  
+  // Functions for mobile menu
+  const openMobileMenu = () => setIsMobileMenuOpen(true);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
+  
+  // Functions for cart
+  const openCart = () => {
+    console.log("[UIContext] openCart called");
     setIsCartOpen(true);
-    setIsSearchOpen(false);
-  }
-
-  function closeCart() {
+    setMiniCartOpen(true); // Also set miniCartOpen
+  };
+  
+  const closeCart = () => {
+    console.log("[UIContext] closeCart called");
     setIsCartOpen(false);
-  }
-
-  function openSearch() {
-    setIsSearchOpen(true);
-    setIsCartOpen(false);
-  }
-
-  function closeSearch() {
-    setIsSearchOpen(false);
-  }
-
-  function openMegaMenu() {
-    setIsMegaMenuOpen(true);
-  }
-
-  function closeMegaMenu() {
-    setIsMegaMenuOpen(false);
-  }
-
-  function toggleMobileMenu() {
-    setIsMobileMenuOpen(prev => !prev);
-  }
+    setMiniCartOpen(false); // Also clear miniCartOpen
+  };
+  
+  // Functions for search
+  const openSearch = () => setIsSearchOpen(true);
+  const closeSearch = () => setIsSearchOpen(false);
 
   return (
     <UIContext.Provider
       value={{
-        isCartOpen,
         isSearchOpen,
-        isMegaMenuOpen,
-        isMobileMenuOpen,
-        openCart,
-        closeCart,
         openSearch,
         closeSearch,
+        isCartOpen,
+        openCart,
+        closeCart,
+        isMegaMenuOpen,
         openMegaMenu,
         closeMegaMenu,
+        isMobileMenuOpen,
+        openMobileMenu,
+        closeMobileMenu,
         toggleMobileMenu,
+        miniCartOpen,
+        setMiniCartOpen,
+        setMobileMenuOpen: setIsMobileMenuOpen,
         isHeaderScrolled
       }}
     >

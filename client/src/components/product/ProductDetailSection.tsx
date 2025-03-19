@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { ProductDetail } from "@/types";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { useUI } from "@/contexts/UIContext";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
 
 interface ProductDetailSectionProps {
@@ -13,6 +14,7 @@ interface ProductDetailSectionProps {
 export default function ProductDetailSection({ product }: ProductDetailSectionProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { setMiniCartOpen } = useUI();
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(
     product.colorVariants.length > 0 ? product.colorVariants[0].value : ""
@@ -21,6 +23,8 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
     product.sizeVariants.length > 0 ? product.sizeVariants[0].value : ""
   );
   const [activeTab, setActiveTab] = useState("description");
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -41,6 +45,7 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
 
   const handleAddToCart = async () => {
     try {
+      setIsAddingToCart(true);
       await addToCart({
         productId: product.id,
         quantity,
@@ -48,17 +53,28 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
         sizeVariant: selectedSize
       });
       
+      setAddedToCart(true);
       toast({
         title: "Added to cart",
         description: `${product.name} has been added to your cart.`,
         variant: "default",
       });
+      
+      // Automatically open the mini cart after adding
+      setTimeout(() => setMiniCartOpen(true), 300);
+      
+      // Reset the added to cart state after 3 seconds
+      setTimeout(() => {
+        setAddedToCart(false);
+      }, 3000);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -250,14 +266,28 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
               </div>
               
               <motion.button 
-                className="flex-1 h-14 bg-accent hover:bg-accent-dark text-white font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+                className={`flex-1 h-14 ${addedToCart ? 'bg-green-600 hover:bg-green-700' : 'bg-accent hover:bg-accent-dark'} text-white font-medium rounded-md transition-colors flex items-center justify-center gap-2`}
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={!product.inStock || isAddingToCart}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <i className="fas fa-shopping-cart"></i>
-                <span>Add to Cart</span>
+                {isAddingToCart ? (
+                  <>
+                    <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                    <span>Adding...</span>
+                  </>
+                ) : addedToCart ? (
+                  <>
+                    <i className="fas fa-check"></i>
+                    <span>Added to Cart</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-shopping-cart"></i>
+                    <span>Add to Cart</span>
+                  </>
+                )}
               </motion.button>
               
               <motion.button 

@@ -1,5 +1,6 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
+import { AnimatePresence } from "framer-motion";
 import NotFound from "@/pages/not-found";
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
@@ -36,7 +37,7 @@ function Router() {
 }
 
 function App() {
-  const { isCartOpen, isSearchOpen } = useUI();
+  const { isCartOpen, isSearchOpen, miniCartOpen } = useUI();
   
   // Run translation debug test only once on mount
   useEffect(() => {
@@ -48,21 +49,24 @@ function App() {
   }, []);
 
   return (
-    <WishlistProvider>
-      <div className="relative">
-        <Header />
-        <main>
-          <Router />
-        </main>
-        <Footer />
+    <div className="relative">
+      <Header />
+      <main>
+        <Router />
+      </main>
+      <Footer />
 
-        {/* Overlays */}
-        {isCartOpen && <MiniCart />}
+      {/* Overlays */}
+      <AnimatePresence>
         {isSearchOpen && <SearchOverlay />}
-        <Toaster />
-        <AccessibilityMenu />
-      </div>
-    </WishlistProvider>
+      </AnimatePresence>
+      
+      {/* Always render MiniCart - it will show/hide based on internal state */}
+      <MiniCart />
+      
+      <Toaster />
+      <AccessibilityMenu />
+    </div>
   );
 }
 

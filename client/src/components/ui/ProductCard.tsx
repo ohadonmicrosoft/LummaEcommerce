@@ -16,7 +16,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { openCart } = useUI();
+  const { openCart, setMiniCartOpen } = useUI();
   const { isInWishlist } = useWishlist();
   const { toast } = useToast();
   
@@ -27,11 +27,15 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log("[ProductCard] Add to cart clicked for product:", product.name);
+    
     try {
       await addToCart({
         productId: product.id,
         quantity: 1
       });
+      
+      console.log("[ProductCard] Product added to cart successfully");
       
       toast({
         title: "Added to cart",
@@ -39,7 +43,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         variant: "default",
       });
       
+      // Add a delay before opening the mini cart to ensure cart state is updated
+      setTimeout(() => {
+        console.log("[ProductCard] Opening mini cart after adding product");
+        setMiniCartOpen(true);
+      }, 300);
+      
     } catch (error) {
+      console.error("[ProductCard] Error adding to cart:", error);
       toast({
         title: "Error",
         description: "Failed to add item to cart. Please try again.",
@@ -235,6 +246,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                   boxShadow: "0 10px 25px rgba(59, 130, 246, 0.25)",
                   y: -2
                 }}
+                data-testid="add-to-cart-button"
               >
                 <ShoppingCart className="w-5 h-5" />
               </motion.button>

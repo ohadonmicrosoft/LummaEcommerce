@@ -1,30 +1,29 @@
-import { useEffect } from "react";
-import { useRoute } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import ProductDetailSection from "@/components/product/ProductDetailSection";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import React from 'react';
+import { useParams } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShoppingBag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import ProductDetailSection from '@/components/product/ProductDetailSection';
+import { ProductDetail as ProductDetailType } from '@/types';
 
 export default function ProductDetail() {
   // Match route to get product slug
-  const [match, params] = useRoute("/products/:slug");
-  const { slug } = params || {};
-
+  const params = useParams();
+  const slug = params.slug;
+  
   // Fetch product details
-  const { 
-    data: product, 
-    isLoading, 
-    error 
-  } = useQuery({
-    queryKey: [`/api/products/${slug}`],
-    enabled: !!slug,
+  const { data: product, error, isLoading } = useQuery<ProductDetailType>({
+    queryKey: ['product', slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/products/${slug}`);
+      if (!response.ok) throw new Error('Failed to fetch product details');
+      return response.json();
+    },
+    enabled: !!slug
   });
-
-  // Scroll to top when the page loads
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [slug]);
 
   // Loading state
   if (isLoading) {

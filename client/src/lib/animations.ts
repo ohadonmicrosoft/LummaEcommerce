@@ -8,103 +8,101 @@ type AnimationVariants = Variants;
 export const fadeIn: AnimationVariants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.3 }
+  exit: { opacity: 0 }
 };
 
 // Slide up animation
 export const slideUp: AnimationVariants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: 20 },
-  transition: { duration: 0.5 }
+  exit: { opacity: 0, y: 20 }
 };
 
 // Slide down animation
 export const slideDown: AnimationVariants = {
   initial: { opacity: 0, y: -20 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-  transition: { duration: 0.5 }
+  exit: { opacity: 0, y: -20 }
 };
 
 // Slide in from right animation
 export const slideInRight: AnimationVariants = {
   initial: { opacity: 0, x: 100 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 100 },
-  transition: { duration: 0.3, type: "tween" }
+  exit: { opacity: 0, x: 100 }
 };
 
 // Slide in from left animation
 export const slideInLeft: AnimationVariants = {
   initial: { opacity: 0, x: -100 },
   animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -100 },
-  transition: { duration: 0.3, type: "tween" }
+  exit: { opacity: 0, x: -100 }
 };
 
 // Scale animation
 export const scaleUp: AnimationVariants = {
   initial: { opacity: 0, scale: 0.9 },
   animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.9 },
-  transition: { duration: 0.3 }
+  exit: { opacity: 0, scale: 0.9 }
 };
 
-// Staggered children animation
+// Fade animation with delay
+export const fadeWithDelay: AnimationVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 }
+};
+
+// Staggered container animations
 export const staggerContainer: AnimationVariants = {
-  initial: {},
-  animate: {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.3
+      staggerChildren: 0.1
     }
   }
 };
 
-// Child animation for staggered containers
+// Staggered item animations
 export const staggerItem: AnimationVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5, ease: "easeOut" }
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1 },
+  exit: { y: 20, opacity: 0 }
 };
 
-// Hover scale animation for cards
-export const hoverScale: AnimationVariants = {
-  whileHover: { scale: 1.03, transition: { duration: 0.3 } }
-};
-
-// Hover lift animation for product cards
-export const hoverLift: AnimationVariants = {
-  whileHover: { 
-    y: -5, 
-    boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)",
-    transition: { duration: 0.3 } 
+// Cart item animation
+export const cartItemVariants: AnimationVariants = {
+  initial: { opacity: 0, height: 0, marginBottom: 0 },
+  visible: { 
+    opacity: 1, 
+    height: "auto", 
+    marginBottom: "1rem"
+  },
+  exit: { 
+    opacity: 0, 
+    height: 0, 
+    marginBottom: 0
   }
+};
+
+// Mobile menu item animation
+export const menuItemVariants: AnimationVariants = {
+  closed: { x: -10, opacity: 0 },
+  open: { x: 0, opacity: 1 }
 };
 
 // Pulse animation
-export const pulse: AnimationVariants = {
-  animate: { 
+export const pulseVariants: AnimationVariants = {
+  initial: { scale: 1 },
+  pulse: { 
     scale: [1, 1.05, 1],
-    transition: { 
-      duration: 2,
-      repeat: Infinity,
-      repeatType: "loop" 
-    } 
   }
 };
 
-// Rotate animation for 360 product view
-export const rotate360: AnimationVariants = {
-  animate: { 
-    rotate: 360,
-    transition: { 
-      duration: 20,
-      repeat: Infinity,
-      repeatType: "loop",
-      ease: "linear"
-    } 
-  }
+// Notification badge animation
+export const badgeVariants: AnimationVariants = {
+  initial: { scale: 0, opacity: 0 },
+  animate: { scale: 1, opacity: 1 },
+  exit: { scale: 0, opacity: 0 }
 };

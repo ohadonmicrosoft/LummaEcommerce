@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUI } from "@/contexts/UIContext";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -8,6 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useScrollEffect } from "@/hooks/useScrollEffect";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { Search, User, ShoppingCart, Menu, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Hard-code navigation translations directly as a fallback
 const navTranslations = {
@@ -45,11 +46,16 @@ export default function Header() {
     openMegaMenu, 
     closeMegaMenu,
     toggleMobileMenu,
-    isMobileMenuOpen
+    isMobileMenuOpen,
+    setMobileMenuOpen,
+    setMiniCartOpen
   } = useUI();
-  const { getTotalItems } = useCart();
+  const { cartItems, getTotalItems, cartCountChanged, resetCartCountChanged } = useCart();
   const { wishlistItems } = useWishlist();
   const { t, dir, language } = useLanguage();
+  
+  // Track cart item count
+  const [prevCartCount, setPrevCartCount] = useState(0);
   
   // Use direct translations map as fallback
   const nav = navTranslations[language] || navTranslations.en;
@@ -57,6 +63,49 @@ export default function Header() {
   const { isThresholdExceeded } = useScrollEffect({
     threshold: 50
   });
+  
+  // Track cart count changes
+  useEffect(() => {
+    const currentTotalItems = getTotalItems();
+    
+    // Update the previous count reference
+    if (currentTotalItems !== prevCartCount) {
+      setPrevCartCount(currentTotalItems);
+    }
+  }, [cartItems, getTotalItems, prevCartCount]);
+  
+  // Reset cart count changed flag after animation duration
+  useEffect(() => {
+    if (cartCountChanged) {
+      const timer = setTimeout(() => {
+        resetCartCountChanged();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [cartCountChanged, resetCartCountChanged]);
+  
+  // Log when the component renders with current cart information
+  useEffect(() => {
+    const totalItemCount = getTotalItems();
+    console.log("[Header] Rendering with cart items:", totalItemCount);
+  }, [getTotalItems, cartItems]);
+
+  // Debug logging for header render
+  console.log("[Header] Rendering - Cart items count:", getTotalItems());
+  
+  // Force an update for cart indicator
+  useEffect(() => {
+    console.log("[Header] Cart items count changed:", getTotalItems());
+    // Apply an animated class for visibility
+    const cartBadges = document.querySelectorAll('.cart-badge');
+    cartBadges.forEach(badge => {
+      badge.classList.add('cart-badge-highlight');
+      setTimeout(() => {
+        badge.classList.remove('cart-badge-highlight');
+      }, 1000);
+    });
+  }, [getTotalItems()]);
 
   return (
     <header 
@@ -280,29 +329,26 @@ export default function Header() {
             </Link>
             
             <div className="relative">
-              <motion.button 
-                type="button" 
-                className={`p-2 rounded-full transition-all duration-300 ${
-                  isThresholdExceeded 
-                    ? "bg-gray-100 text-gray-800 hover:bg-primary/10 hover:text-primary" 
-                    : "bg-white/10 text-white hover:bg-white/20"
-                }`}
-                onClick={openCart} 
-                aria-label={nav.cart}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
+              <Button
+                variant="ghost"
+                size="icon"
+                id="main-cart-button"
+                className="cart-button relative hover:bg-primary/10 active:scale-95 transition-all"
+                onClick={() => {
+                  console.log("[Header] Cart button clicked, items:", getTotalItems());
+                  setMiniCartOpen(true);
+                }}
+                aria-label="Shopping cart"
+                data-testid="cart-button"
               >
                 <ShoppingCart className="h-5 w-5" />
-                {getTotalItems() > 0 && (
-                  <motion.span 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md"
-                  >
-                    {getTotalItems()}
-                  </motion.span>
-                )}
-              </motion.button>
+                <div 
+                  className="cart-badge"
+                  style={{display: getTotalItems() > 0 ? 'flex' : 'none'}}
+                >
+                  {getTotalItems()}
+                </div>
+              </Button>
             </div>
             
             <motion.button 
@@ -513,6 +559,37 @@ export default function Header() {
                   )}
                 </div>
               </Link>
+            </motion.div>
+            
+            <motion.div
+              className="w-full"
+              variants={{
+                open: { 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { delay: 0.5 }
+                },
+                closed: { opacity: 0, y: -10 }
+              }}
+            >
+              <div 
+                id="mobile-cart-button"
+                className="cart-button text-gray-800 font-medium text-lg w-full py-3 px-4 block hover:bg-primary/5 hover:text-primary rounded-xl transition-colors relative cursor-pointer active:translate-y-0.5 active:bg-primary/10"
+                onClick={() => {
+                  console.log("[Header] Mobile cart clicked, items:", getTotalItems());
+                  toggleMobileMenu();
+                  setMiniCartOpen(true);
+                }}
+                data-testid="mobile-cart-button"
+              >
+                {nav.cart}
+                <div
+                  className="cart-badge"
+                  style={{display: getTotalItems() > 0 ? 'flex' : 'none'}}
+                >
+                  {getTotalItems()}
+                </div>
+              </div>
             </motion.div>
           </nav>
         </div>

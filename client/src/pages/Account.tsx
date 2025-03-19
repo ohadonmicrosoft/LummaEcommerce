@@ -480,7 +480,7 @@ export default function Account() {
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-medium">{order.id}</h3>
                             <Badge variant={
-                              order.status === "delivered" ? "success" : 
+                              order.status === "delivered" ? "secondary" : 
                               order.status === "processing" ? "outline" : "secondary"
                             }>
                               {order.status === "delivered" ? "Delivered" : 
@@ -546,7 +546,7 @@ export default function Account() {
                     <CardTitle className="flex items-center gap-2">
                       Order {orderDetails.id}
                       <Badge variant={
-                        orderDetails.status === "delivered" ? "success" : 
+                        orderDetails.status === "delivered" ? "secondary" : 
                         orderDetails.status === "processing" ? "outline" : "secondary"
                       }>
                         {orderDetails.status === "delivered" ? "Delivered" : 
