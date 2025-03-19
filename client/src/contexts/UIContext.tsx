@@ -14,11 +14,14 @@ interface UIContextType {
   openMobileMenu: () => void;
   closeMobileMenu: () => void;
   toggleMobileMenu: () => void;
-  miniCartOpen: boolean;
-  setMiniCartOpen: (isOpen: boolean) => void;
   setMobileMenuOpen: (isOpen: boolean) => void;
   isHeaderScrolled?: boolean;
+  miniCartOpen: boolean;
+  setMiniCartOpen: (isOpen: boolean) => void;
 }
+
+// Debug console log
+console.log("[UIContext] Module loaded");
 
 // Create context with default values instead of undefined
 export const UIContext = createContext<UIContextType>({
@@ -26,7 +29,6 @@ export const UIContext = createContext<UIContextType>({
   isSearchOpen: false,
   isMegaMenuOpen: false,
   isMobileMenuOpen: false,
-  miniCartOpen: false,
   openCart: () => {},
   closeCart: () => {},
   openSearch: () => {},
@@ -37,8 +39,9 @@ export const UIContext = createContext<UIContextType>({
   closeMobileMenu: () => {},
   toggleMobileMenu: () => {},
   setMobileMenuOpen: () => {},
-  setMiniCartOpen: () => {},
   isHeaderScrolled: false,
+  miniCartOpen: false,
+  setMiniCartOpen: () => {},
 });
 
 export function UIProvider({ children }: { children: React.ReactNode }) {
@@ -46,8 +49,13 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [miniCartOpen, setMiniCartOpen] = useState(false);
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
+  const [miniCartOpen, setMiniCartOpen] = useState(false);
+
+  // Debug log on provider mount
+  useEffect(() => {
+    console.log("[UIContext] Provider mounted");
+  }, []);
 
   // Handle scroll effect for header
   useEffect(() => {
@@ -62,12 +70,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Debug logging for miniCartOpen state
-  useEffect(() => {
-    console.log("[UIContext] miniCartOpen state changed to:", miniCartOpen);
-  }, [miniCartOpen]);
-
+  
   // Functions for menu
   const openMegaMenu = () => setIsMegaMenuOpen(true);
   const closeMegaMenu = () => setIsMegaMenuOpen(false);
@@ -81,13 +84,19 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const openCart = () => {
     console.log("[UIContext] openCart called");
     setIsCartOpen(true);
-    setMiniCartOpen(true); // Also set miniCartOpen
+    setMiniCartOpen(true);
   };
   
   const closeCart = () => {
     console.log("[UIContext] closeCart called");
     setIsCartOpen(false);
-    setMiniCartOpen(false); // Also clear miniCartOpen
+    setMiniCartOpen(false);
+  };
+  
+  const handleSetMiniCartOpen = (isOpen: boolean) => {
+    console.log("[UIContext] setMiniCartOpen called with:", isOpen);
+    setMiniCartOpen(isOpen);
+    setIsCartOpen(isOpen);
   };
   
   // Functions for search
@@ -110,10 +119,10 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
         openMobileMenu,
         closeMobileMenu,
         toggleMobileMenu,
-        miniCartOpen,
-        setMiniCartOpen,
         setMobileMenuOpen: setIsMobileMenuOpen,
-        isHeaderScrolled
+        isHeaderScrolled,
+        miniCartOpen,
+        setMiniCartOpen: handleSetMiniCartOpen,
       }}
     >
       {children}

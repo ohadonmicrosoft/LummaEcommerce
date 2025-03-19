@@ -1,423 +1,346 @@
+// At the beginning of the file, add console trace to debug mounting
+console.log("[MiniCart] Module loaded");
+
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useUI } from "@/contexts/UIContext";
 import { useCart } from "@/contexts/CartContext";
-import { slideInRight, fadeIn } from "@/lib/animations";
-import { Trash2, X, Minus, Plus, ShoppingBag, ArrowRightCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
+// Helper to format currency
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
+};
 
 export default function MiniCart() {
-  const { closeCart, miniCartOpen, setMiniCartOpen } = useUI();
+  const { miniCartOpen, setMiniCartOpen } = useUI();
   const { 
     cartItems, 
     updateCartItemQuantity, 
     removeCartItem, 
     getTotalItems, 
-    getTotalPrice, 
-    isLoading,
-    lastAddedItemId,
-    cartCountChanged,
-    resetCartCountChanged
+    getTotalPrice,
+    cartCountChanged 
   } = useCart();
   
-  // Track quantity changes for animation
-  const [changedItemId, setChangedItemId] = useState<number | null>(null);
-  const [recentlyAdded, setRecentlyAdded] = useState<boolean>(false);
+  const [highlightedItem, setHighlightedItem] = useState<number | null>(null);
+  const cartRef = useRef<HTMLDivElement>(null);
   
-  // Force a render to ensure the component is responsive
-  const [forceRender, setForceRender] = useState(0);
-  
-  // Ensure UI stays in sync with state
+  // Debug logging
   useEffect(() => {
-    // Force a re-render periodically to ensure UI stays fresh
-    const interval = setInterval(() => {
-      setForceRender(prev => prev + 1);
-    }, 2000);
-    
-    return () => clearInterval(interval);
+    console.log("[MiniCart] Component mounted");
+    return () => console.log("[MiniCart] Component unmounted");
   }, []);
   
-  // Check for cart changed animations
   useEffect(() => {
-    if (cartCountChanged) {
-      setRecentlyAdded(true);
-      const timer = setTimeout(() => {
-        setRecentlyAdded(false);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [cartCountChanged]);
+    console.log("[MiniCart] miniCartOpen state changed:", miniCartOpen);
+  }, [miniCartOpen]);
   
-  // Format currency
-  const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-
-  // Item removal animation
-  const itemVariants = {
-    hidden: { opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' },
-    visible: { opacity: 1, height: 'auto', marginBottom: 16, overflow: 'visible' },
-    exit: { opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden', transition: { duration: 0.3 } }
-  };
-  
-  // Cart empty state animation
-  const emptyCartVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { delay: 0.2, duration: 0.4 } }
-  };
-  
-  // Add to cart success pulse animation
-  const successPulseVariants = {
-    initial: { scale: 1, opacity: 0 },
-    animate: { 
-      scale: [1, 1.2, 1], 
-      opacity: [0, 1, 0], 
-      transition: { 
-        duration: 1.5, 
-        times: [0, 0.5, 1],
-        ease: "easeInOut" 
-      } 
+  // Handle quantity changes
+  const handleQuantityChange = async (itemId: number, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    
+    try {
+      await updateCartItemQuantity(itemId, newQuantity);
+      // Highlight item briefly to indicate change
+      setHighlightedItem(itemId);
+      setTimeout(() => setHighlightedItem(null), 1000);
+    } catch (error) {
+      console.error("Error updating quantity:", error);
     }
   };
   
-  // Quantity change pulse animation
-  const pulseQuantity = (id: number) => {
-    setChangedItemId(id);
-    setTimeout(() => setChangedItemId(null), 300);
+  // Handle remove item
+  const handleRemoveItem = async (itemId: number) => {
+    try {
+      await removeCartItem(itemId);
+    } catch (error) {
+      console.error("Error removing item:", error);
+    }
   };
   
-  // Handle quantity update with animation
-  const handleUpdateQuantity = async (id: number, newQuantity: number) => {
-    pulseQuantity(id);
-    await updateCartItemQuantity(id, newQuantity);
-  };
-  
-  // Calculate summary information
+  // Calculate summary values
   const subtotal = getTotalPrice();
-  const shipping = subtotal >= 100 ? 0 : 10.99;
-  const tax = subtotal * 0.0825; // 8.25% tax rate
-  const total = subtotal + (subtotal >= 100 ? 0 : shipping) + tax;
+  const shipping = subtotal > 100 ? 0 : 12.99;
+  const total = subtotal + shipping;
   
-  // Free shipping threshold calculation
+  // Free shipping progress
   const freeShippingThreshold = 100;
   const progressToFreeShipping = Math.min((subtotal / freeShippingThreshold) * 100, 100);
-
-  // Effect to close the cart when clicking outside
+  const amountToFreeShipping = subtotal >= freeShippingThreshold ? 0 : freeShippingThreshold - subtotal;
+  
+  // Close cart on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Element;
-      if (miniCartOpen && !target.closest('.mini-cart-container')) {
+      if (cartRef.current && !cartRef.current.contains(e.target as Node)) {
         setMiniCartOpen(false);
       }
     };
-
+    
     if (miniCartOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [miniCartOpen, setMiniCartOpen]);
-
-  // Close mini cart when ESC key is pressed
+  
+  // Close cart on ESC key
   useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && miniCartOpen) {
+      if (e.key === "Escape") {
         setMiniCartOpen(false);
       }
     };
-
+    
     if (miniCartOpen) {
-      document.addEventListener('keydown', handleEscKey);
+      document.addEventListener("keydown", handleEscKey);
     }
-
+    
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
+      document.removeEventListener("keydown", handleEscKey);
     };
   }, [miniCartOpen, setMiniCartOpen]);
-
-  // Log when miniCartOpen state changes
-  useEffect(() => {
-    console.log("[MiniCart] miniCartOpen state changed to:", miniCartOpen);
-    document.body.classList.toggle('mini-cart-open', miniCartOpen);
-  }, [miniCartOpen]);
-
-  // Log cart items when they change
-  useEffect(() => {
-    console.log("[MiniCart] Cart items updated:", cartItems);
-  }, [cartItems]);
-
-  console.log("[MiniCart] Rendering, miniCartOpen:", miniCartOpen, "cartItems:", cartItems.length, "forceRender:", forceRender);
-
-  if (!miniCartOpen) {
-    // Don't render anything when closed to save resources
-    return null;
-  }
-
+  
+  // Animation variants
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+    exit: { opacity: 0, transition: { duration: 0.3 } }
+  };
+  
+  const panelVariants = {
+    hidden: { x: "100%" },
+    visible: { x: 0, transition: { type: "spring", damping: 25, stiffness: 300 } },
+    exit: { x: "100%", transition: { duration: 0.3 } }
+  };
+  
+  // Empty state animation
+  const emptyStateVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { delay: 0.2 } }
+  };
+  
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" data-testid="mini-cart-overlay">
-      <motion.div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={() => {
-          console.log("[MiniCart] Backdrop clicked, closing mini cart");
-          setMiniCartOpen(false);
-        }}
-      />
-      
-      <motion.div 
-        className="mini-cart-container fixed top-0 right-0 h-full w-full sm:w-96 max-w-full bg-white shadow-2xl z-10 flex flex-col"
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={slideInRight}
-        style={{ 
-          boxShadow: '0 0 25px rgba(0, 0, 0, 0.15), 0 0 10px rgba(0, 0, 0, 0.12)',
-          borderTopLeftRadius: '12px',
-          borderBottomLeftRadius: '12px'
-        }}
-      >
-        <header className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-heading font-bold text-xl flex items-center gap-2">
-            <ShoppingBag size={20} className="text-primary" />
-            Your Cart 
-            <motion.div
-              initial={{ scale: 1 }}
-              animate={recentlyAdded ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-              transition={{ repeat: recentlyAdded ? 1 : 0, duration: 0.3 }}
-            >
-              <Badge variant="outline" className={`font-normal ml-1 ${recentlyAdded ? 'bg-accent text-white' : ''}`}>
-                {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
-              </Badge>
-            </motion.div>
-            {recentlyAdded && (
-              <motion.span 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-xs text-accent ml-2 font-normal"
-              >
-                Item added!
-              </motion.span>
-            )}
-          </h3>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => {
-              console.log("[MiniCart] Close button clicked");
-              setMiniCartOpen(false);
-            }}
-            aria-label="Close cart"
-            className="rounded-full hover:bg-primary/10"
+    <AnimatePresence>
+      {miniCartOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <motion.div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            variants={backdropVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={() => setMiniCartOpen(false)}
+          />
+          
+          {/* Cart panel */}
+          <motion.div
+            ref={cartRef}
+            className="absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col"
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
-            <X size={20} className="text-secondary hover:text-primary transition-colors" />
-          </Button>
-        </header>
-        
-        {/* Free shipping progress bar */}
-        <div className="px-4 py-3 bg-primary/5 border-b">
-          {subtotal >= freeShippingThreshold ? (
-            <div className="text-center text-sm text-green-600 font-medium flex items-center gap-1 justify-center">
-              <span>✓</span> You've unlocked free shipping!
-            </div>
-          ) : (
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-secondary">
-                  ${(freeShippingThreshold - subtotal).toFixed(2)} away from free shipping
-                </span>
-                <span className="font-medium">${subtotal.toFixed(2)}/${freeShippingThreshold.toFixed(2)}</span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressToFreeShipping}%` }}
-                ></div>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <AnimatePresence>
-            {cartItems.length === 0 ? (
-              <motion.div 
-                className="flex flex-col items-center justify-center h-full text-center p-6"
-                variants={fadeIn}
-                initial="initial"
-                animate="animate"
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5 text-primary" />
+                Your Cart ({getTotalItems()})
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMiniCartOpen(false)}
+                className="rounded-full hover:bg-gray-100"
+                aria-label="Close cart"
               >
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <ShoppingBag size={32} className="text-primary" />
-                </div>
-                <h4 className="text-xl font-medium mb-2">Your cart is empty</h4>
-                <p className="text-secondary mb-8 max-w-xs">Ready to start shopping? Add some products to your cart to see them here.</p>
-                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xs">
-                  <Button 
-                    className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all duration-300 flex-1"
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-4">
+              {cartItems.length === 0 ? (
+                <motion.div
+                  className="flex flex-col items-center justify-center h-full text-center py-8"
+                  variants={emptyStateVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <div className="bg-gray-100 rounded-full p-6 mb-4">
+                    <ShoppingBag className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Your cart is empty</h3>
+                  <p className="text-gray-500 mb-6 max-w-xs">
+                    Looks like you haven't added any products to your cart yet.
+                  </p>
+                  <Button
                     onClick={() => setMiniCartOpen(false)}
+                    className="bg-primary hover:bg-primary/90"
                   >
                     Continue Shopping
                   </Button>
-                  <Link href="/products?sale=true">
-                    <Button 
-                      variant="outline"
-                      className="border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 flex-1"
-                      onClick={() => setMiniCartOpen(false)}
-                    >
-                      View Sale Items
-                    </Button>
-                  </Link>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                className="flex flex-col space-y-0"
-                variants={fadeIn}
-                initial="initial"
-                animate="animate"
-              >
-                <AnimatePresence>
+                </motion.div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Cart items */}
                   {cartItems.map((item) => (
-                    <motion.div 
-                      key={item.id} 
-                      className={`flex gap-4 pb-4 mb-4 border-b last:border-b-0 relative ${
-                        lastAddedItemId === item.id ? 'bg-primary/5 rounded-md' : ''
+                    <div
+                      key={item.id}
+                      className={`flex gap-4 p-3 rounded-lg transition-colors duration-300 ${
+                        highlightedItem === item.id ? "bg-blue-50" : ""
                       }`}
-                      variants={itemVariants}
-                      initial="visible"
-                      exit="exit"
-                      layout
-                      animate={lastAddedItemId === item.id ? { 
-                        scale: [1, 1.02, 1], 
-                        transition: { duration: 0.6 } 
-                      } : {}}
                     >
-                      <div className="h-24 w-24 flex-shrink-0 bg-neutral-50 rounded-md overflow-hidden shadow-sm">
-                        <motion.img 
-                          src={item.product.mainImage} 
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
-                          whileHover={{ scale: 1.05 }}
-                          transition={{ duration: 0.3 }}
-                        />
+                      {/* Product image */}
+                      <div className="h-20 w-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                        {item.product?.mainImage && (
+                          <img
+                            src={item.product.mainImage}
+                            alt={item.product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between">
-                          <h4 className="font-medium text-base mb-1 truncate pr-6">{item.product.name}</h4>
-                          <Button 
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-full hover:bg-neutral-100 absolute right-0 top-0"
-                            onClick={() => removeCartItem(item.id)}
-                            aria-label={`Remove ${item.product.name} from cart`}
-                          >
-                            <Trash2 size={15} className="text-neutral-500 hover:text-red-600 transition-colors" />
-                          </Button>
+                      {/* Product details */}
+                      <div className="flex-1 space-y-1">
+                        <h3 className="font-medium line-clamp-2">
+                          {item.product.name}
+                        </h3>
+                        <div className="text-sm text-gray-500">
+                          {item.colorVariant && (
+                            <span className="mr-2">Color: {item.colorVariant}</span>
+                          )}
+                          {item.sizeVariant && (
+                            <span>Size: {item.sizeVariant}</span>
+                          )}
                         </div>
-                        
-                        <div className="text-neutral-600 text-sm mb-2">
-                          {item.colorVariant && <span className="mr-2">Color: {item.colorVariant}</span>}
-                          {item.sizeVariant && <span>Size: {item.sizeVariant}</span>}
-                        </div>
-                        
-                        <div className="flex justify-between items-center mt-2">
-                          <div className="flex items-center border rounded-md overflow-hidden">
-                            <Button 
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-none border-r hover:bg-gray-100"
-                              onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                              aria-label="Decrease quantity"
-                            >
-                              <Minus size={14} />
-                            </Button>
-                            <motion.span 
-                              className="w-10 text-center"
-                              animate={changedItemId === item.id ? { scale: [1, 1.2, 1] } : {}}
-                              transition={{ duration: 0.3 }}
-                            >
-                              {item.quantity}
-                            </motion.span>
-                            <Button 
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-none border-l hover:bg-gray-100"
-                              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                              aria-label="Increase quantity"
-                            >
-                              <Plus size={14} />
-                            </Button>
-                          </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="font-medium">
+                            {formatCurrency(item.product.price)}
+                          </span>
                           
-                          <div className="font-medium">
-                            {formatter.format(item.product.price * item.quantity)}
+                          <div className="flex items-center gap-2">
+                            {/* Quantity controls */}
+                            <div className="flex items-center border rounded-md">
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                                className="p-1 hover:bg-gray-100"
+                                disabled={item.quantity <= 1}
+                                aria-label="Decrease quantity"
+                              >
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <span className="px-2 text-sm">{item.quantity}</span>
+                              <button
+                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                                className="p-1 hover:bg-gray-100"
+                                aria-label="Increase quantity"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            
+                            {/* Remove button */}
+                            <button
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"
+                              aria-label="Remove item"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        {cartItems.length > 0 && (
-          <motion.div 
-            className="p-4 border-t bg-gray-50"
-            variants={fadeIn}
-            initial="initial"
-            animate="animate"
-          >
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-secondary">Subtotal</span>
-                <span>{formatter.format(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-secondary">Shipping</span>
-                <span>{subtotal >= 100 ? "Free" : formatter.format(shipping)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-secondary">Estimated Tax</span>
-                <span>{formatter.format(tax)}</span>
-              </div>
-              <div className="flex justify-between font-medium text-lg pt-2 border-t">
-                <span>Total</span>
-                <span className="text-primary">{formatter.format(total)}</span>
-              </div>
+                  
+                  {/* Free shipping progress */}
+                  <div className="bg-gray-50 p-4 rounded-lg mt-6">
+                    {subtotal < freeShippingThreshold ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Progress to free shipping</span>
+                          <span className="font-medium">
+                            {formatCurrency(subtotal)} of {formatCurrency(freeShippingThreshold)}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-500"
+                            style={{ width: `${progressToFreeShipping}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          Add {formatCurrency(amountToFreeShipping)} more to get FREE shipping!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-1.5">
+                        <p className="text-primary font-medium">
+                          🎉 You've unlocked FREE shipping!
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
-            <Link href="/checkout">
-              <Button 
-                className="w-full bg-accent hover:bg-accent-dark text-white font-medium shadow-md hover:shadow-lg mb-3 transition-all duration-300"
-                onClick={() => setMiniCartOpen(false)}
-              >
-                Proceed to Checkout
-              </Button>
-            </Link>
-            
-            <Link href="/cart">
-              <Button 
-                variant="outline"
-                className="w-full border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300"
-                onClick={() => setMiniCartOpen(false)}
-              >
-                View Full Cart
-              </Button>
-            </Link>
+            {/* Footer with checkout */}
+            {cartItems.length > 0 && (
+              <div className="border-t p-4 bg-gray-50">
+                <div className="space-y-3 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Shipping</span>
+                    <span>
+                      {shipping === 0 ? (
+                        <span className="text-primary">FREE</span>
+                      ) : (
+                        formatCurrency(shipping)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-medium pt-2 border-t">
+                    <span>Total</span>
+                    <span>{formatCurrency(total)}</span>
+                  </div>
+                </div>
+                
+                <Link href="/checkout">
+                  <Button
+                    onClick={() => setMiniCartOpen(false)}
+                    className="w-full bg-primary hover:bg-primary/90 flex items-center justify-center gap-2"
+                  >
+                    Checkout
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                
+                <button
+                  onClick={() => setMiniCartOpen(false)}
+                  className="w-full text-center mt-3 py-2 text-sm text-gray-600 hover:text-primary"
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            )}
           </motion.div>
-        )}
-      </motion.div>
-    </div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -14,7 +14,7 @@ interface ProductDetailSectionProps {
 export default function ProductDetailSection({ product }: ProductDetailSectionProps) {
   const { addToCart } = useCart();
   const { toast } = useToast();
-  const { setMiniCartOpen } = useUI();
+  const { openCart } = useUI();
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(
     product.colorVariants.length > 0 ? product.colorVariants[0].value : ""
@@ -60,8 +60,8 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
         variant: "default",
       });
       
-      // Automatically open the mini cart after adding
-      setTimeout(() => setMiniCartOpen(true), 300);
+      // Automatically open the cart after adding
+      setTimeout(() => openCart(), 300);
       
       // Reset the added to cart state after 3 seconds
       setTimeout(() => {

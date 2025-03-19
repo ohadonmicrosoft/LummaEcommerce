@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useCart } from './CartContext';
 
 // Define checkout step types
@@ -20,6 +20,8 @@ export interface ShippingInfo {
   state: string;
   zipCode: string;
   country: string;
+  id?: string;
+  isDefault?: boolean;
 }
 
 // Payment information interface
@@ -28,6 +30,8 @@ export interface PaymentInfo {
   nameOnCard: string;
   expiryDate: string;
   cvv: string;
+  isDefault?: boolean;
+  id?: string;
 }
 
 // Shipping method interface
@@ -44,6 +48,7 @@ export interface PaymentMethod {
   id: string;
   name: string;
   icon: string;
+  isDefault?: boolean;
 }
 
 // Order summary interface
@@ -76,9 +81,13 @@ interface CheckoutContextType {
   // Saved addresses and payment methods
   savedAddresses: ShippingInfo[];
   setSavedAddresses: (addresses: ShippingInfo[]) => void;
+  getDefaultAddress: () => ShippingInfo | undefined;
+  setDefaultAddress: (addressId: string) => void;
   
   savedPaymentMethods: PaymentMethod[];
   setSavedPaymentMethods: (methods: PaymentMethod[]) => void;
+  getDefaultPaymentMethod: () => PaymentMethod | undefined;
+  setDefaultPaymentMethod: (methodId: string) => void;
 
   // Selected shipping and payment methods
   selectedShippingMethod: ShippingMethod | null;
@@ -124,9 +133,13 @@ export const CheckoutContext = createContext<CheckoutContextType>({
   
   savedAddresses: [],
   setSavedAddresses: () => {},
+  getDefaultAddress: () => undefined,
+  setDefaultAddress: () => {},
   
   savedPaymentMethods: [],
   setSavedPaymentMethods: () => {},
+  getDefaultPaymentMethod: () => undefined,
+  setDefaultPaymentMethod: () => {},
   
   selectedShippingMethod: null,
   setSelectedShippingMethod: () => {},
@@ -151,7 +164,7 @@ export const CheckoutContext = createContext<CheckoutContextType>({
 
 // Provider component
 export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { saveCartAsOrder, clearCart } = useCart();
+  const { saveCartAsOrder, clearCart, cartItems, getTotalPrice } = useCart();
   
   // Steps definition with icons and progress
   const getSteps = () => {
@@ -201,6 +214,64 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   // Order summary
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
+
+  // Update order summary when cart changes
+  useEffect(() => {
+    if (cartItems.length > 0 && selectedShippingMethod) {
+      const subtotal = getTotalPrice();
+      const shipping = selectedShippingMethod.price;
+      const tax = subtotal * 0.08; // Example: 8% tax rate
+      
+      setOrderSummary({
+        subtotal,
+        shipping,
+        tax,
+        total: subtotal + shipping + tax,
+        currency: 'USD'
+      });
+    } else if (cartItems.length > 0) {
+      const subtotal = getTotalPrice();
+      const tax = subtotal * 0.08; // Example: 8% tax rate
+      
+      setOrderSummary({
+        subtotal,
+        shipping: 0,
+        tax,
+        total: subtotal + tax,
+        currency: 'USD'
+      });
+    } else {
+      setOrderSummary(null);
+    }
+  }, [cartItems, selectedShippingMethod, getTotalPrice]);
+  
+  // Get default address function
+  const getDefaultAddress = (): ShippingInfo | undefined => {
+    return savedAddresses.find(addr => addr.isDefault);
+  };
+  
+  // Set default address function
+  const setDefaultAddress = (addressId: string): void => {
+    const updatedAddresses = savedAddresses.map(addr => ({
+      ...addr,
+      isDefault: addr.id === addressId
+    }));
+    setSavedAddresses(updatedAddresses);
+  };
+  
+  // Get default payment method function
+  const getDefaultPaymentMethod = (): PaymentMethod | undefined => {
+    return savedPaymentMethods.find(method => method.isDefault);
+  };
+  
+  // Set default payment method function
+  const setDefaultPaymentMethod = (methodId: string): void => {
+    const updatedMethods = savedPaymentMethods.map(method => ({
+      ...method,
+      isDefault: method.id === methodId
+    }));
+    setSavedPaymentMethods(updatedMethods);
+  };
   
   // Navigation functions
   const goToNextStep = () => {
@@ -327,9 +398,13 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     savedAddresses,
     setSavedAddresses,
+    getDefaultAddress,
+    setDefaultAddress,
     
     savedPaymentMethods,
     setSavedPaymentMethods,
+    getDefaultPaymentMethod,
+    setDefaultPaymentMethod,
     
     selectedShippingMethod,
     setSelectedShippingMethod,

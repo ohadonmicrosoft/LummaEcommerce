@@ -15,6 +15,7 @@ import CheckoutStepIndicator from '@/components/checkout/CheckoutStepIndicator';
 import ShippingMethodSelector from '@/components/checkout/ShippingMethodSelector';
 import PaymentMethodSelector from '@/components/checkout/PaymentMethodSelector';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import AddressSelection from '@/components/checkout/AddressSelection';
 
 // Animation variants
 const fadeIn = {
@@ -230,113 +231,31 @@ const CheckoutContent = () => {
                     Shipping Address
                   </h2>
                   
-                  <form onSubmit={handleShippingSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <label htmlFor="address" className="block text-sm font-medium">
-                        Street Address
-                      </label>
-                      <Input
-                        id="address"
-                        type="text"
-                        value={shippingInfo.address}
-                        onChange={(e) => setShippingInfo({...shippingInfo, address: e.target.value})}
-                        placeholder="123 Main St"
-                        required
-                      />
-                    </div>
+                  <AddressSelection showTitle={false} />
+
+                  <div className="mt-6 pt-4 border-t flex justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={goToPreviousStep}
+                      className="flex items-center"
+                    >
+                      <ChevronLeft size={16} className="mr-2" />
+                      Back to Information
+                    </Button>
                     
-                    <div className="space-y-2">
-                      <label htmlFor="apartment" className="block text-sm font-medium">
-                        Apartment, Suite, etc. (optional)
-                      </label>
-                      <Input
-                        id="apartment"
-                        type="text"
-                        value={shippingInfo.apartment}
-                        onChange={(e) => setShippingInfo({...shippingInfo, apartment: e.target.value})}
-                        placeholder="Apt 4B"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label htmlFor="city" className="block text-sm font-medium">
-                          City
-                        </label>
-                        <Input
-                          id="city"
-                          type="text"
-                          value={shippingInfo.city}
-                          onChange={(e) => setShippingInfo({...shippingInfo, city: e.target.value})}
-                          placeholder="New York"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="state" className="block text-sm font-medium">
-                          State / Province
-                        </label>
-                        <Input
-                          id="state"
-                          type="text"
-                          value={shippingInfo.state}
-                          onChange={(e) => setShippingInfo({...shippingInfo, state: e.target.value})}
-                          placeholder="NY"
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label htmlFor="zipCode" className="block text-sm font-medium">
-                          ZIP / Postal Code
-                        </label>
-                        <Input
-                          id="zipCode"
-                          type="text"
-                          value={shippingInfo.zipCode}
-                          onChange={(e) => setShippingInfo({...shippingInfo, zipCode: e.target.value})}
-                          placeholder="10001"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label htmlFor="country" className="block text-sm font-medium">
-                          Country
-                        </label>
-                        <Input
-                          id="country"
-                          type="text"
-                          value={shippingInfo.country}
-                          onChange={(e) => setShippingInfo({...shippingInfo, country: e.target.value})}
-                          placeholder="United States"
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 flex justify-between">
-                      <Button 
-                        type="button" 
-                        onClick={goToPreviousStep}
-                        variant="outline"
-                      >
-                        <ChevronLeft size={16} className="mr-2" />
-                        Back
-                      </Button>
-                      <Button type="submit" className="bg-primary hover:bg-primary/90 text-white">
-                        Continue to Payment
-                        <ChevronRight size={16} className="ml-2" />
-                      </Button>
-                    </div>
-                  </form>
+                    <Button 
+                      type="button"
+                      onClick={handleShippingSubmit}
+                      className="bg-primary hover:bg-primary/90 text-white"
+                    >
+                      Continue to Payment
+                      <ChevronRight size={16} className="ml-2" />
+                    </Button>
+                  </div>
                 </div>
                 
-                {/* Shipping Method Selector */}
-                <ShippingMethodSelector />
+                <ShippingMethodSelector className="mb-6" />
               </motion.div>
             )}
             

@@ -16,7 +16,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { openCart, setMiniCartOpen } = useUI();
+  const { openCart } = useUI();
   const { isInWishlist } = useWishlist();
   const { toast } = useToast();
   
@@ -43,10 +43,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         variant: "default",
       });
       
-      // Add a delay before opening the mini cart to ensure cart state is updated
+      // Add a delay before opening the cart to ensure cart state is updated
       setTimeout(() => {
-        console.log("[ProductCard] Opening mini cart after adding product");
-        setMiniCartOpen(true);
+        console.log("[ProductCard] Opening cart after adding product");
+        openCart();
       }, 300);
       
     } catch (error) {

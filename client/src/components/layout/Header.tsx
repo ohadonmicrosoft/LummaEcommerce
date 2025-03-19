@@ -7,7 +7,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useScrollEffect } from "@/hooks/useScrollEffect";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
-import { Search, User, ShoppingCart, Menu, Heart } from "lucide-react";
+import { Search, User, ShoppingBag, Menu, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Hard-code navigation translations directly as a fallback
@@ -48,7 +48,7 @@ export default function Header() {
     toggleMobileMenu,
     isMobileMenuOpen,
     setMobileMenuOpen,
-    setMiniCartOpen
+    setMiniCartOpen,
   } = useUI();
   const { cartItems, getTotalItems, cartCountChanged, resetCartCountChanged } = useCart();
   const { wishlistItems } = useWishlist();
@@ -96,16 +96,29 @@ export default function Header() {
   
   // Force an update for cart indicator
   useEffect(() => {
-    console.log("[Header] Cart items count changed:", getTotalItems());
+    console.log("[Header] Cart items count changed:", getTotalItems(), "cartCountChanged:", cartCountChanged);
+    
+    // Debug the active state of the cart button elements
+    const mainCartBtn = document.getElementById('main-cart-button');
+    const mobileCartBtn = document.getElementById('mobile-cart-button');
+    
+    console.log("[Header] Main cart button exists:", !!mainCartBtn);
+    console.log("[Header] Mobile cart button exists:", !!mobileCartBtn);
+    
     // Apply an animated class for visibility
     const cartBadges = document.querySelectorAll('.cart-badge');
+    console.log("[Header] Found cart badges:", cartBadges.length);
+    
     cartBadges.forEach(badge => {
       badge.classList.add('cart-badge-highlight');
+      // Make badges more visible
+      badge.setAttribute('style', 'display: flex !important; background-color: red !important;');
+      
       setTimeout(() => {
         badge.classList.remove('cart-badge-highlight');
       }, 1000);
     });
-  }, [getTotalItems()]);
+  }, [getTotalItems(), cartCountChanged]);
 
   return (
     <header 
@@ -333,17 +346,18 @@ export default function Header() {
                 variant="ghost"
                 size="icon"
                 id="main-cart-button"
-                className="cart-button relative hover:bg-primary/10 active:scale-95 transition-all"
+                className="cart-button relative hover:bg-primary/10 active:scale-95 transition-all border border-gray-300"
                 onClick={() => {
                   console.log("[Header] Cart button clicked, items:", getTotalItems());
                   setMiniCartOpen(true);
                 }}
                 aria-label="Shopping cart"
                 data-testid="cart-button"
+                style={{ backgroundColor: "#f0f0f0" }}
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingBag className="h-5 w-5" />
                 <div 
-                  className="cart-badge"
+                  className="cart-badge absolute -top-2 -right-2 bg-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center animate-cart-badge-pulse"
                   style={{display: getTotalItems() > 0 ? 'flex' : 'none'}}
                 >
                   {getTotalItems()}
@@ -574,17 +588,18 @@ export default function Header() {
             >
               <div 
                 id="mobile-cart-button"
-                className="cart-button text-gray-800 font-medium text-lg w-full py-3 px-4 block hover:bg-primary/5 hover:text-primary rounded-xl transition-colors relative cursor-pointer active:translate-y-0.5 active:bg-primary/10"
+                className="cart-button text-gray-800 font-medium text-lg w-full py-3 px-4 block hover:bg-primary/5 hover:text-primary rounded-xl transition-colors relative cursor-pointer active:translate-y-0.5 active:bg-primary/10 border border-gray-300"
                 onClick={() => {
                   console.log("[Header] Mobile cart clicked, items:", getTotalItems());
                   toggleMobileMenu();
                   setMiniCartOpen(true);
                 }}
                 data-testid="mobile-cart-button"
+                style={{ backgroundColor: "#f0f0f0" }}
               >
                 {nav.cart}
                 <div
-                  className="cart-badge"
+                  className="cart-badge absolute right-4 top-1/2 -translate-y-1/2 bg-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"
                   style={{display: getTotalItems() > 0 ? 'flex' : 'none'}}
                 >
                   {getTotalItems()}
