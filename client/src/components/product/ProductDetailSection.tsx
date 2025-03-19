@@ -6,6 +6,9 @@ import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUI } from "@/contexts/UIContext";
 import ProductImageGallery from "@/components/product/ProductImageGallery";
+import { Minus, Plus, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { t } from "@/lib/utils";
 
 interface ProductDetailSectionProps {
   product: ProductDetail;
@@ -60,14 +63,17 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
         variant: "default",
       });
       
-      // Automatically open the cart after adding
-      setTimeout(() => openCart(), 300);
+      // Open cart after a short delay
+      setTimeout(() => {
+        openCart();
+      }, 300);
       
-      // Reset the added to cart state after 3 seconds
+      // Reset the added state after 2 seconds
       setTimeout(() => {
         setAddedToCart(false);
-      }, 3000);
+      }, 2000);
     } catch (error) {
+      console.error('Error adding to cart:', error);
       toast({
         title: "Error",
         description: "Failed to add item to cart. Please try again.",
@@ -77,6 +83,12 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
       setIsAddingToCart(false);
     }
   };
+
+  // Calculate if the Add to Cart button should be disabled
+  const isAddToCartDisabled = 
+    !product.inStock || 
+    (product.variants.some(v => v.type === 'color') && !selectedColor) ||
+    (product.variants.some(v => v.type === 'size') && !selectedSize);
 
   const getColorName = (colorValue: string) => {
     const colorVariant = product.colorVariants.find(v => v.value === colorValue);
@@ -236,77 +248,57 @@ export default function ProductDetailSection({ product }: ProductDetailSectionPr
             </div>
             
             {/* Add to Cart */}
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="flex h-14 rounded-md overflow-hidden border border-secondary/30">
-                <motion.button 
-                  className="w-14 flex items-center justify-center hover:bg-neutral-dark transition-colors" 
-                  aria-label="Decrease quantity"
-                  onClick={() => handleQuantityChange(-1)}
-                  whileTap={{ scale: 0.9 }}
-                  disabled={quantity <= 1}
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center border rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1}
+                    className={`p-2 ${quantity <= 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}`}
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="px-4 py-2 text-center min-w-[3rem]">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(1)}
+                    className="p-2 text-gray-600 hover:bg-gray-100"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={isAddToCartDisabled || isAddingToCart}
+                  className={`flex-1 ${addedToCart ? 'bg-green-600 hover:bg-green-700' : 'bg-primary hover:bg-primary/90'} text-white transition-colors`}
                 >
-                  <i className="fas fa-minus"></i>
-                </motion.button>
-                <input 
-                  type="number" 
-                  value={quantity} 
-                  min="1" 
-                  className="w-14 text-center focus:outline-none" 
-                  aria-label="Quantity"
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                />
-                <motion.button 
-                  className="w-14 flex items-center justify-center hover:bg-neutral-dark transition-colors" 
-                  aria-label="Increase quantity"
-                  onClick={() => handleQuantityChange(1)}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <i className="fas fa-plus"></i>
-                </motion.button>
+                  {isAddingToCart ? (
+                    <>
+                      <span className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                      Adding...
+                    </>
+                  ) : addedToCart ? (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Added to Cart
+                    </>
+                  ) : !product.inStock ? (
+                    'Out of Stock'
+                  ) : (
+                    t('product.addToCart')
+                  )}
+                </Button>
               </div>
-              
-              <motion.button 
-                className={`flex-1 h-14 ${addedToCart ? 'bg-green-600 hover:bg-green-700' : 'bg-accent hover:bg-accent-dark'} text-white font-medium rounded-md transition-colors flex items-center justify-center gap-2`}
-                onClick={handleAddToCart}
-                disabled={!product.inStock || isAddingToCart}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isAddingToCart ? (
-                  <>
-                    <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                    <span>Adding...</span>
-                  </>
-                ) : addedToCart ? (
-                  <>
-                    <i className="fas fa-check"></i>
-                    <span>Added to Cart</span>
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-shopping-cart"></i>
-                    <span>Add to Cart</span>
-                  </>
-                )}
-              </motion.button>
-              
-              <motion.button 
-                className="h-14 w-14 border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-md transition-colors flex items-center justify-center" 
-                aria-label="Add to wishlist"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <i className="fas fa-heart"></i>
-              </motion.button>
-              
-              <motion.button 
-                className="h-14 w-14 border-2 border-primary text-primary hover:bg-primary hover:text-white rounded-md transition-colors flex items-center justify-center" 
-                aria-label="Compare"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <i className="fas fa-exchange-alt"></i>
-              </motion.button>
+              {isAddToCartDisabled && product.inStock && (
+                <p className="text-red-500 text-sm">
+                  {!selectedColor && product.variants.some(v => v.type === 'color') ? 'Please select a color.' : ''}
+                  {!selectedSize && product.variants.some(v => v.type === 'size') ? 'Please select a size.' : ''}
+                </p>
+              )}
             </div>
             
             {/* Product Features */}

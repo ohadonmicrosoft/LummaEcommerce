@@ -29,6 +29,13 @@ export default function ProductCard({ product }: ProductCardProps) {
     
     console.log("[ProductCard] Add to cart clicked for product:", product.name);
     
+    // Find the button element and add loading state
+    const button = e.currentTarget as HTMLButtonElement;
+    button.disabled = true;
+    button.classList.add('opacity-70');
+    const originalText = button.innerText;
+    button.innerText = 'Adding...';
+    
     try {
       await addToCart({
         productId: product.id,
@@ -36,6 +43,11 @@ export default function ProductCard({ product }: ProductCardProps) {
       });
       
       console.log("[ProductCard] Product added to cart successfully");
+      
+      // Show success state
+      button.innerText = 'Added!';
+      button.classList.remove('opacity-70');
+      button.classList.add('bg-green-600');
       
       toast({
         title: "Added to cart",
@@ -47,15 +59,35 @@ export default function ProductCard({ product }: ProductCardProps) {
       setTimeout(() => {
         console.log("[ProductCard] Opening cart after adding product");
         openCart();
+        
+        // Reset button after cart is opened
+        setTimeout(() => {
+          button.disabled = false;
+          button.innerText = originalText;
+          button.classList.remove('bg-green-600');
+        }, 500);
       }, 300);
       
     } catch (error) {
       console.error("[ProductCard] Error adding to cart:", error);
+      
+      // Show error state
+      button.innerText = 'Failed';
+      button.classList.remove('opacity-70');
+      button.classList.add('bg-red-600');
+      
       toast({
         title: "Error",
         description: "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
+      
+      // Reset button after error
+      setTimeout(() => {
+        button.disabled = false;
+        button.innerText = originalText;
+        button.classList.remove('bg-red-600');
+      }, 1500);
     }
   };
 

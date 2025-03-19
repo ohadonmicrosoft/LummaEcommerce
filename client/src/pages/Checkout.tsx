@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { 
@@ -38,7 +38,7 @@ const slideInLeft = {
 
 const CheckoutContent = () => {
   const [, navigate] = useLocation();
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, getTotalItems, getTotalPrice } = useCart();
   const { toast } = useToast();
   const { 
     currentStep, 
@@ -51,8 +51,29 @@ const CheckoutContent = () => {
     paymentInfo,
     setPaymentInfo,
     processOrder,
-    resetCheckout
+    resetCheckout,
+    selectedShippingMethod
   } = useCheckout();
+  
+  // Add a state to track if user is coming from cart
+  const [comingFromCart, setComingFromCart] = useState(true);
+
+  // Use effect to check if coming from cart and show a welcome message
+  useEffect(() => {
+    if (comingFromCart && cartItems.length > 0) {
+      toast({
+        title: "Ready to checkout?",
+        description: `You have ${getTotalItems()} items in your cart totaling $${getTotalPrice().toFixed(2)}`,
+        variant: "default",
+      });
+      setComingFromCart(false);
+    }
+  }, [cartItems.length, comingFromCart, getTotalItems, getTotalPrice, toast]);
+  
+  // Add a function to go back to cart
+  const handleBackToCart = () => {
+    navigate('/cart');
+  };
   
   // Handle form submissions for each step
   const handleInformationSubmit = (e: React.FormEvent) => {
@@ -125,8 +146,17 @@ const CheckoutContent = () => {
       transition={{ duration: 0.3 }}
     >
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-        <CheckoutStepIndicator className="mb-8" />
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Checkout</h1>
+          <button 
+            onClick={handleBackToCart}
+            className="text-primary hover:underline flex items-center text-sm"
+          >
+            <ShoppingBag className="mr-1 h-4 w-4" />
+            Back to Cart
+          </button>
+        </div>
+        <CheckoutStepIndicator className="mt-6" />
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

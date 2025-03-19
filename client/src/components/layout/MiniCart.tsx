@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useUI } from "@/contexts/UIContext";
 import { useCart } from "@/contexts/CartContext";
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, X, ShoppingCart, Truck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Helper to format currency
@@ -21,11 +21,14 @@ export default function MiniCart() {
   const { miniCartOpen, setMiniCartOpen } = useUI();
   const { 
     cartItems, 
+    isLoading, 
     updateCartItemQuantity, 
     removeCartItem, 
     getTotalItems, 
     getTotalPrice,
-    cartCountChanged 
+    lastAddedItemId,
+    cartCountChanged,
+    resetCartCountChanged 
   } = useCart();
   
   const [highlightedItem, setHighlightedItem] = useState<number | null>(null);
@@ -73,6 +76,29 @@ export default function MiniCart() {
   const freeShippingThreshold = 100;
   const progressToFreeShipping = Math.min((subtotal / freeShippingThreshold) * 100, 100);
   const amountToFreeShipping = subtotal >= freeShippingThreshold ? 0 : freeShippingThreshold - subtotal;
+  const qualifiesForFreeShipping = subtotal >= freeShippingThreshold;
+  
+  // Calculate estimated delivery date (3-5 business days from now)
+  const getEstimatedDeliveryDate = () => {
+    const today = new Date();
+    const minDays = 3; // Minimum business days
+    const maxDays = 5; // Maximum business days
+    
+    // Add minimum days
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() + minDays);
+    
+    // Add maximum days
+    const maxDate = new Date(today);
+    maxDate.setDate(today.getDate() + maxDays);
+    
+    // Format dates
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const minDateFormatted = minDate.toLocaleDateString('en-US', options);
+    const maxDateFormatted = maxDate.toLocaleDateString('en-US', options);
+    
+    return `${minDateFormatted} - ${maxDateFormatted}`;
+  };
   
   // Close cart on click outside
   useEffect(() => {
@@ -153,7 +179,7 @@ export default function MiniCart() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <ShoppingBag className="h-5 w-5 text-primary" />
+                <ShoppingCart className="h-5 w-5 text-primary" />
                 Your Cart ({getTotalItems()})
               </h2>
               <Button
@@ -169,7 +195,11 @@ export default function MiniCart() {
             
             {/* Content */}
             <div className="flex-1 overflow-auto p-4">
-              {cartItems.length === 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : cartItems.length === 0 ? (
                 <motion.div
                   className="flex flex-col items-center justify-center h-full text-center py-8"
                   variants={emptyStateVariants}
@@ -196,12 +226,10 @@ export default function MiniCart() {
                   {cartItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`flex gap-4 p-3 rounded-lg transition-colors duration-300 ${
-                        highlightedItem === item.id ? "bg-blue-50" : ""
-                      }`}
+                      className={`flex py-4 border-b ${lastAddedItemId === item.id ? 'bg-green-50 animate-pulse' : 'bg-white'} transition-all`}
                     >
                       {/* Product image */}
-                      <div className="h-20 w-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                      <div className="relative h-24 w-24 rounded-md overflow-hidden flex-shrink-0 bg-gray-100">
                         {item.product?.mainImage && (
                           <img
                             src={item.product.mainImage}
@@ -212,85 +240,126 @@ export default function MiniCart() {
                       </div>
                       
                       {/* Product details */}
-                      <div className="flex-1 space-y-1">
-                        <h3 className="font-medium line-clamp-2">
-                          {item.product.name}
-                        </h3>
-                        <div className="text-sm text-gray-500">
+                      <div className="ml-4 flex-1">
+                        <div className="flex justify-between">
+                          <Link href={`/products/${item.product.slug}`} onClick={() => setMiniCartOpen(false)}>
+                            <h4 className="font-medium text-sm line-clamp-2 hover:text-primary transition-colors">
+                              {item.product.name}
+                            </h4>
+                          </Link>
+                          <p className="font-medium text-sm">
+                            ${(item.product.price * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                        
+                        <div className="mt-1 text-gray-500 text-sm">
                           {item.colorVariant && (
-                            <span className="mr-2">Color: {item.colorVariant}</span>
+                            <p className="text-xs">Color: <span className="capitalize">{item.colorVariant}</span></p>
                           )}
                           {item.sizeVariant && (
-                            <span>Size: {item.sizeVariant}</span>
+                            <p className="text-xs">Size: <span className="uppercase">{item.sizeVariant}</span></p>
                           )}
+                          <p className="text-xs">Unit price: ${item.product.price.toFixed(2)}</p>
                         </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="font-medium">
-                            {formatCurrency(item.product.price)}
-                          </span>
-                          
-                          <div className="flex items-center gap-2">
-                            {/* Quantity controls */}
-                            <div className="flex items-center border rounded-md">
-                              <button
-                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                className="p-1 hover:bg-gray-100"
-                                disabled={item.quantity <= 1}
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="h-3.5 w-3.5" />
-                              </button>
-                              <span className="px-2 text-sm">{item.quantity}</span>
-                              <button
-                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                className="p-1 hover:bg-gray-100"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                            
-                            {/* Remove button */}
+                        
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center border border-gray-200 rounded-md">
                             <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"
-                              aria-label="Remove item"
+                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              className="p-1 hover:bg-gray-100"
+                              aria-label="Decrease quantity"
+                              disabled={item.quantity <= 1}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <span className="px-2 text-sm">{item.quantity}</span>
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              className="p-1 hover:bg-gray-100"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
                             </button>
                           </div>
+                          
+                          {/* Remove button */}
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                   
-                  {/* Free shipping progress */}
-                  <div className="bg-gray-50 p-4 rounded-lg mt-6">
-                    {subtotal < freeShippingThreshold ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Progress to free shipping</span>
-                          <span className="font-medium">
-                            {formatCurrency(subtotal)} of {formatCurrency(freeShippingThreshold)}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all duration-500"
-                            style={{ width: `${progressToFreeShipping}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          Add {formatCurrency(amountToFreeShipping)} more to get FREE shipping!
-                        </p>
+                  {/* Shipping Info */}
+                  <div className="bg-gray-50 p-4 rounded-lg mt-6 space-y-4">
+                    {/* Delivery estimate */}
+                    <div className="flex items-start">
+                      <Clock className="h-5 w-5 text-gray-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Estimated Delivery</p>
+                        <p className="text-sm text-gray-600">{getEstimatedDeliveryDate()}</p>
                       </div>
-                    ) : (
-                      <div className="text-center py-1.5">
-                        <p className="text-primary font-medium">
-                          🎉 You've unlocked FREE shipping!
-                        </p>
+                    </div>
+                    
+                    {/* Free shipping progress */}
+                    <div className="flex items-start">
+                      <Truck className="h-5 w-5 text-gray-500 mt-0.5 mr-2 flex-shrink-0" />
+                      <div className="flex-1">
+                        {subtotal < freeShippingThreshold ? (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="font-medium">Free Shipping Progress</span>
+                              <span>
+                                ${subtotal.toFixed(2)} of ${freeShippingThreshold.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary rounded-full transition-all duration-500"
+                                style={{ width: `${progressToFreeShipping}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              Add ${amountToFreeShipping.toFixed(2)} more to get FREE shipping!
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center py-1">
+                            <p className="text-primary font-medium flex items-center justify-center">
+                              <Truck className="h-4 w-4 mr-2" />
+                              You've unlocked FREE shipping!
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  </div>
+                  
+                  {/* Order Summary */}
+                  <div className="mt-6 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Subtotal</span>
+                      <span className="font-medium">${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Shipping</span>
+                      <span className="font-medium">
+                        {qualifiesForFreeShipping ? (
+                          <span className="text-green-600">FREE</span>
+                        ) : (
+                          'Calculated at checkout'
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-200 pt-2 mt-2">
+                      <span className="font-medium">Estimated Total</span>
+                      <span className="font-bold">${subtotal.toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -299,43 +368,24 @@ export default function MiniCart() {
             {/* Footer with checkout */}
             {cartItems.length > 0 && (
               <div className="border-t p-4 bg-gray-50">
-                <div className="space-y-3 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>{formatCurrency(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Shipping</span>
-                    <span>
-                      {shipping === 0 ? (
-                        <span className="text-primary">FREE</span>
-                      ) : (
-                        formatCurrency(shipping)
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-medium pt-2 border-t">
-                    <span>Total</span>
-                    <span>{formatCurrency(total)}</span>
-                  </div>
-                </div>
-                
-                <Link href="/checkout">
-                  <Button
+                <div className="space-y-4">
+                  <Link href="/checkout">
+                    <Button
+                      onClick={() => setMiniCartOpen(false)}
+                      className="w-full bg-primary hover:bg-primary/90 font-medium text-white py-3"
+                    >
+                      Proceed to Checkout
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  
+                  <button
                     onClick={() => setMiniCartOpen(false)}
-                    className="w-full bg-primary hover:bg-primary/90 flex items-center justify-center gap-2"
+                    className="w-full text-center py-2 text-sm text-gray-600 hover:text-primary"
                   >
-                    Checkout
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                
-                <button
-                  onClick={() => setMiniCartOpen(false)}
-                  className="w-full text-center mt-3 py-2 text-sm text-gray-600 hover:text-primary"
-                >
-                  Continue Shopping
-                </button>
+                    Continue Shopping
+                  </button>
+                </div>
               </div>
             )}
           </motion.div>
