@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useCart } from './CartContext';
+import { PaymentMethod as EnhancedPaymentMethod, PaymentMethodFormData, CardType } from '../types/payment';
 
 // Define checkout step types
 export type CheckoutStep = 'information' | 'shipping' | 'payment' | 'review' | 'confirmation';
@@ -24,7 +25,7 @@ export interface ShippingInfo {
   isDefault?: boolean;
 }
 
-// Payment information interface
+// Legacy Payment information interface
 export interface PaymentInfo {
   cardNumber: string;
   nameOnCard: string;
@@ -34,6 +35,14 @@ export interface PaymentInfo {
   id?: string;
 }
 
+// Legacy Payment method interface
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  icon: string;
+  isDefault?: boolean;
+}
+
 // Shipping method interface
 export interface ShippingMethod {
   id: string;
@@ -41,14 +50,6 @@ export interface ShippingMethod {
   description: string;
   estimatedDelivery: string;
   price: number;
-}
-
-// Payment method interface
-export interface PaymentMethod {
-  id: string;
-  name: string;
-  icon: string;
-  isDefault?: boolean;
 }
 
 // Order summary interface
@@ -84,10 +85,19 @@ interface CheckoutContextType {
   getDefaultAddress: () => ShippingInfo | undefined;
   setDefaultAddress: (addressId: string) => void;
   
+  // Legacy payment methods
   savedPaymentMethods: PaymentMethod[];
   setSavedPaymentMethods: (methods: PaymentMethod[]) => void;
   getDefaultPaymentMethod: () => PaymentMethod | undefined;
-  setDefaultPaymentMethod: (methodId: string) => void;
+  
+  // Enhanced payment methods
+  paymentMethods: EnhancedPaymentMethod[];
+  selectedPaymentMethodId: string | null;
+  setSelectedPaymentMethodId: (id: string | null) => void;
+  addPaymentMethod: (paymentMethod: PaymentMethodFormData) => void;
+  updatePaymentMethod: (id: string, paymentMethod: Partial<PaymentMethodFormData>) => void;
+  removePaymentMethod: (id: string) => void;
+  setDefaultPaymentMethod: (id: string) => void;
 
   // Selected shipping and payment methods
   selectedShippingMethod: ShippingMethod | null;
@@ -139,6 +149,13 @@ export const CheckoutContext = createContext<CheckoutContextType>({
   savedPaymentMethods: [],
   setSavedPaymentMethods: () => {},
   getDefaultPaymentMethod: () => undefined,
+  
+  paymentMethods: [],
+  selectedPaymentMethodId: null,
+  setSelectedPaymentMethodId: () => {},
+  addPaymentMethod: () => {},
+  updatePaymentMethod: () => {},
+  removePaymentMethod: () => {},
   setDefaultPaymentMethod: () => {},
   
   selectedShippingMethod: null,
@@ -208,12 +225,33 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [savedAddresses, setSavedAddresses] = useState<ShippingInfo[]>([]);
   const [savedPaymentMethods, setSavedPaymentMethods] = useState<PaymentMethod[]>([]);
   
+  // Enhanced payment methods
+  const [paymentMethods, setPaymentMethods] = useState<EnhancedPaymentMethod[]>(() => {
+    const savedPaymentMethods = localStorage.getItem('paymentMethods');
+    return savedPaymentMethods ? JSON.parse(savedPaymentMethods) : [];
+  });
+  
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  
   // Selected shipping and payment methods
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<ShippingMethod | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   
   // Order summary
   const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
+
+  // Save payment methods to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('paymentMethods', JSON.stringify(paymentMethods));
+  }, [paymentMethods]);
+
+  // Select default payment method if available and none selected
+  useEffect(() => {
+    if (!selectedPaymentMethodId && paymentMethods.length > 0) {
+      const defaultPaymentMethod = paymentMethods.find(pm => pm.isDefault);
+      setSelectedPaymentMethodId(defaultPaymentMethod?.id || paymentMethods[0].id);
+    }
+  }, [paymentMethods, selectedPaymentMethodId]);
 
   // Update order summary when cart changes
   useEffect(() => {
@@ -264,14 +302,88 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
     return savedPaymentMethods.find(method => method.isDefault);
   };
   
-  // Set default payment method function
-  const setDefaultPaymentMethod = (methodId: string): void => {
-    const updatedMethods = savedPaymentMethods.map(method => ({
-      ...method,
-      isDefault: method.id === methodId
-    }));
-    setSavedPaymentMethods(updatedMethods);
-  };
+  // Enhanced payment method functions
+  const addPaymentMethod = useCallback((paymentData: PaymentMethodFormData) => {
+    const newPaymentMethod: EnhancedPaymentMethod = {
+      id: generateId(),
+      type: 'credit_card',
+      isDefault: paymentData.isDefault || paymentMethods.length === 0,
+      nickname: paymentData.nickname,
+      cardholderName: paymentData.cardholderName,
+      cardNumber: paymentData.cardNumber,
+      maskedCardNumber: paymentData.cardNumber.slice(-4).padStart(16, '*'),
+      expiryMonth: paymentData.expiryMonth,
+      expiryYear: paymentData.expiryYear,
+      cvv: paymentData.cvv,
+      cardType: detectCardType(paymentData.cardNumber),
+    };
+    
+    setPaymentMethods(current => {
+      // If this is set as default, update other payment methods
+      if (newPaymentMethod.isDefault) {
+        return [...current.map(pm => ({ ...pm, isDefault: false })), newPaymentMethod];
+      }
+      return [...current, newPaymentMethod];
+    });
+    
+    setSelectedPaymentMethodId(newPaymentMethod.id);
+  }, [paymentMethods]);
+
+  const updatePaymentMethod = useCallback((id: string, paymentData: Partial<PaymentMethodFormData>) => {
+    setPaymentMethods(current => 
+      current.map(pm => {
+        if (pm.id !== id) {
+          // If we're setting a new default, remove default from others
+          if (paymentData.isDefault) {
+            return { ...pm, isDefault: false };
+          }
+          return pm;
+        }
+        
+        // Update the current payment method
+        const updatedMethod = { ...pm, ...paymentData };
+        
+        // Update card type if number changed
+        if (paymentData.cardNumber) {
+          updatedMethod.cardType = detectCardType(paymentData.cardNumber);
+          updatedMethod.maskedCardNumber = paymentData.cardNumber.slice(-4).padStart(16, '*');
+        }
+        
+        return updatedMethod;
+      })
+    );
+  }, []);
+
+  const removePaymentMethod = useCallback((id: string) => {
+    const methodToRemove = paymentMethods.find(pm => pm.id === id);
+    
+    setPaymentMethods(current => current.filter(pm => pm.id !== id));
+    
+    // If we removed the selected payment method, select another one
+    if (selectedPaymentMethodId === id) {
+      if (paymentMethods.length > 1) {
+        const remaining = paymentMethods.filter(pm => pm.id !== id);
+        const defaultPayment = remaining.find(pm => pm.isDefault);
+        setSelectedPaymentMethodId(defaultPayment?.id || remaining[0]?.id || null);
+      } else {
+        setSelectedPaymentMethodId(null);
+      }
+    }
+    
+    // If we removed the default payment method, set a new default
+    if (methodToRemove?.isDefault && paymentMethods.length > 1) {
+      const remaining = paymentMethods.filter(pm => pm.id !== id);
+      setPaymentMethods(current => 
+        current.map((pm, index) => index === 0 ? { ...pm, isDefault: true } : pm)
+      );
+    }
+  }, [paymentMethods, selectedPaymentMethodId]);
+
+  const setDefaultPaymentMethod = useCallback((id: string) => {
+    setPaymentMethods(current => 
+      current.map(pm => ({ ...pm, isDefault: pm.id === id }))
+    );
+  }, []);
   
   // Navigation functions
   const goToNextStep = () => {
@@ -306,6 +418,7 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
       
       case 'payment':
         if (selectedPaymentMethod) return true;
+        if (selectedPaymentMethodId) return true;
         return !!paymentInfo.cardNumber && !!paymentInfo.nameOnCard && 
                !!paymentInfo.expiryDate && !!paymentInfo.cvv;
       
@@ -322,6 +435,11 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       console.log('Processing order...');
       
+      // Get the selected enhanced payment method if available
+      const enhancedPaymentMethod = selectedPaymentMethodId 
+        ? paymentMethods.find(pm => pm.id === selectedPaymentMethodId)
+        : null;
+      
       // Save the order to get the order ID
       const orderId = await saveCartAsOrder(
         customerInfo,
@@ -329,7 +447,7 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
           ...shippingInfo,
           shippingMethod: selectedShippingMethod
         },
-        selectedPaymentMethod || paymentInfo
+        selectedPaymentMethod || enhancedPaymentMethod || paymentInfo
       );
       
       // Generate a mock tracking number
@@ -378,6 +496,7 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
     });
     setSelectedShippingMethod(null);
     setSelectedPaymentMethod(null);
+    setSelectedPaymentMethodId(null);
     setOrderSummary(null);
     clearCart();
   };
@@ -404,6 +523,13 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
     savedPaymentMethods,
     setSavedPaymentMethods,
     getDefaultPaymentMethod,
+    
+    paymentMethods,
+    selectedPaymentMethodId,
+    setSelectedPaymentMethodId,
+    addPaymentMethod,
+    updatePaymentMethod,
+    removePaymentMethod,
     setDefaultPaymentMethod,
     
     selectedShippingMethod,
@@ -433,6 +559,22 @@ export const CheckoutProvider: React.FC<{ children: ReactNode }> = ({ children }
     </CheckoutContext.Provider>
   );
 };
+
+// Helper functions
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15);
+}
+
+function detectCardType(cardNumber: string): CardType {
+  // Basic regex patterns for card detection
+  const digits = cardNumber.replace(/\D/g, '');
+  
+  if (/^4/.test(digits)) return 'visa';
+  if (/^5[1-5]/.test(digits)) return 'mastercard';
+  if (/^3[47]/.test(digits)) return 'amex';
+  if (/^6(?:011|5[0-9]{2})/.test(digits)) return 'discover';
+  return 'other';
+}
 
 // Custom hook for using the checkout context
 export const useCheckout = () => useContext(CheckoutContext); 
